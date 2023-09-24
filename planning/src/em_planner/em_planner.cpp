@@ -348,8 +348,8 @@ namespace carla_pnc {
       int n = dp_final_path.size();
       double ds = path_ds;
 
-      // double lf = 2.0;    // 质心到车辆前端距离
-      // double lr = 2.0;    // 质心到车辆后端距离
+      double lf = 2.0;    // 质心到车辆前端距离
+      double lr = 2.0;    // 质心到车辆后端距离
       double width = 3.6;    // 车宽(做了冗余)
 
       // Hissen矩阵 H
@@ -368,8 +368,8 @@ namespace carla_pnc {
       Eigen::VectorXd f = Eigen::VectorXd::Zero(3 * n);
 
       // 不等式约束  A*x <= b，边界约束
-      // Eigen::SparseMatrix<double> A(8 * n, 3 * n);
-      // Eigen::VectorXd b = Eigen::VectorXd::Zero(8 * n);
+      Eigen::SparseMatrix<double> A(8 * n, 3 * n);
+      Eigen::VectorXd b = Eigen::VectorXd::Zero(8 * n);
 
       // 等式约束Aeq*x = beq,连续性约束
       Eigen::SparseMatrix<double> Aeq(2 * n - 2, 3 * n);
@@ -382,9 +382,9 @@ namespace carla_pnc {
       Eigen::VectorXd ub = Eigen::VectorXd::Ones(3 * n) * DBL_MAX;
 
       // 约束整合矩阵 lb_merge <= A_merge*x <= ub_merge
-      Eigen::SparseMatrix<double> A_merge(2 * n - 2 + 3 * n, 3 * n);
-      Eigen::VectorXd lb_merge(2 * n - 2 + 3 * n);
-      Eigen::VectorXd ub_merge(2 * n - 2 + 3 * n);
+      Eigen::SparseMatrix<double> A_merge(8 * n + 2 * n - 2 + 3 * n, 3 * n);
+      Eigen::VectorXd lb_merge(8 * n + 2 * n - 2 + 3 * n);
+      Eigen::VectorXd ub_merge(8 * n + 2 * n - 2 + 3 * n);
 
       /***********************************求H**************************************/
       for (int i = 0; i < n; i++) {
@@ -402,14 +402,14 @@ namespace carla_pnc {
         H_DDDL.insert(row, col + 5) = -1;
       }
 
-      H_L_END.insert(3 * n - 3, 3 * n - 3) = 0;
-      H_DL_END.insert(3 * n - 2, 3 * n - 2) = 0;
-      H_DDL_END.insert(3 * n - 1, 3 * n - 1) = 0;
+      H_L_END.insert(3 * n - 3, 3 * n - 3) = 1;
+      H_DL_END.insert(3 * n - 2, 3 * n - 2) = 1;
+      H_DDL_END.insert(3 * n - 1, 3 * n - 1) = 1;
 
       H = this->qp_cost_l * (H_L.transpose() * H_L) +
           this->qp_cost_dl * (H_DL.transpose() * H_DL) +
           this->qp_cost_ddl * (H_DDL.transpose() * H_DDL) +
-          this->qp_cost_dddl * (H_DDDL.transpose() * H_DDDL) / pow(ds, 2) +
+          this->qp_cost_dddl * (H_DDDL.transpose() * H_DDDL) / ds +
           this->qp_cost_ref * (H_CENTRE.transpose() * H_CENTRE) +
           this->qp_cost_end_l * (H_L_END.transpose() * H_L_END) +
           this->qp_cost_end_dl * (H_DL_END.transpose() * H_DL_END) +
@@ -425,61 +425,55 @@ namespace carla_pnc {
       }
 
       // 期望的终点状态
-      // double end_l_desire = 0;
-      // double end_dl_desire = 0;
-      // double end_ddl_desire = 0;
-      // f(3 * n - 3) = f(3 * n - 3) - 2 * end_l_desire * this->qp_cost_end_l;
-      // f(3 * n - 2) = f(3 * n - 2) - 2 * end_dl_desire * this->qp_cost_end_dl;
-      // f(3 * n - 1) = f(3 * n - 1) - 2 * end_ddl_desire * this->qp_cost_end_ddl;
+      double end_l_desire = 0;
+      double end_dl_desire = 0;
+      double end_ddl_desire = 0;
+      f(3 * n - 3) = f(3 * n - 3) - 2 * end_l_desire * this->qp_cost_end_l;
+      f(3 * n - 2) = f(3 * n - 2) - 2 * end_dl_desire * this->qp_cost_end_dl;
+      f(3 * n - 1) = f(3 * n - 1) - 2 * end_ddl_desire * this->qp_cost_end_ddl;
 
       /*********************************** 边界约束 Ax<=b 8n个变量**************************************/
-      // for (int i = 0; i < n - 1; i++)
-      // {
-      //     int row = 8 * i;
-      //     int col = 3 * i;
+      for (int i = 0; i < n; i++) {
+        int row = 8 * i;
+        int col = 3 * i;
 
-      //     A_merge.insert(row + 0, col + 0) = 1;
-      //     A_merge.insert(row + 1, col + 0) = 1;
-      //     A_merge.insert(row + 2, col + 0) = 1;
-      //     A_merge.insert(row + 3, col + 0) = 1;
+        A_merge.insert(row + 0, col + 0) = 1;
+        A_merge.insert(row + 1, col + 0) = 1;
+        A_merge.insert(row + 2, col + 0) = 1;
+        A_merge.insert(row + 3, col + 0) = 1;
 
-      //     A_merge.insert(row + 4, col + 0) = -1;
-      //     A_merge.insert(row + 5, col + 0) = -1;
-      //     A_merge.insert(row + 6, col + 0) = -1;
-      //     A_merge.insert(row + 7, col + 0) = -1;
+        A_merge.insert(row + 4, col + 0) = -1;
+        A_merge.insert(row + 5, col + 0) = -1;
+        A_merge.insert(row + 6, col + 0) = -1;
+        A_merge.insert(row + 7, col + 0) = -1;
 
-      //     A_merge.insert(row + 0, col + 1) = lf;
-      //     A_merge.insert(row + 1, col + 1) = lf;
-      //     A_merge.insert(row + 2, col + 1) = -lr;
-      //     A_merge.insert(row + 3, col + 1) = -lr;
+        A_merge.insert(row + 0, col + 1) = lf;
+        A_merge.insert(row + 1, col + 1) = lf;
+        A_merge.insert(row + 2, col + 1) = -lr;
+        A_merge.insert(row + 3, col + 1) = -lr;
 
-      //     A_merge.insert(row + 4, col + 1) = -lf;
-      //     A_merge.insert(row + 5, col + 1) = -lf;
-      //     A_merge.insert(row + 6, col + 1) = lr;
-      //     A_merge.insert(row + 7, col + 1) = lr;
-      // }
+        A_merge.insert(row + 4, col + 1) = -lf;
+        A_merge.insert(row + 5, col + 1) = -lf;
+        A_merge.insert(row + 6, col + 1) = lr;
+        A_merge.insert(row + 7, col + 1) = lr;
+      }
 
       // 生成b
-      // int front_index = ceil(lf / ds);
-      // int back_index = ceil(lr / ds);
-      // for (int i = 0; i < n; i++)
-      // {
-      //     int index1 = min(i + front_index, n - 1); // 车头索引
-      //     int index2 = max(i - back_index, 0);      // 车尾索引
-      //     Eigen::VectorXd b_sub(8);
-      //     b_sub << l_max(index1) - width / 2, l_max(index1) + width / 2, l_max(index2) - width / 2, l_max(index2) + width / 2,
-      //         -l_min(index1) + width / 2, -l_min(index1) - width / 2, -l_min(index2) + width / 2, -l_min(index2) - width / 2;
+      int front_index = ceil(lf / ds);
+      int back_index = ceil(lr / ds);
+      for (int i = 0; i < n; i++) {
+        int index1 = std::min(i + front_index, n - 1);  // 车头索引
+        int index2 = std::max(i - back_index, 0);       // 车尾索引
+        Eigen::VectorXd b_sub(8);
+        b_sub << l_max(index1) - width / 2, l_max(index1) + width / 2, l_max(index2) - width / 2, l_max(index2) + width / 2,
+                 -l_min(index1) + width / 2, -l_min(index1) - width / 2, -l_min(index2) + width / 2, -l_min(index2) - width / 2;
 
-      // b_sub << l_max(i) - width / 2, l_max(i) + width / 2, l_max(i) - width / 2, l_max(i) + width / 2,
-      //     -l_min(i) + width / 2, -l_min(i) - width / 2, -l_min(i) + width / 2, -l_min(i) - width / 2;
+       // std::cout << "index: " << i << " b_sub: " << b_sub.transpose() << endl;
+        b.block(8 * i, 0, 8, 1) = b_sub;
+      }
 
-      // cout << "index: " << i << " b_sub: " << b_sub.transpose() << endl;
-      //     b.block(8 * i, 0, 8, 1) = b_sub;
-      // }
-
-      // cout << b << endl;
       /***********************************连续性约束 Aeq*x = beq 2n-2个变量**************************************/
-      int row_index_start = 0;
+      int row_index_start = 8 * n;
       for (int i = 0; i < n - 1; i++) {
         int row = row_index_start + 2 * i;
         int col = 3 * i;
@@ -496,16 +490,17 @@ namespace carla_pnc {
       }
 
       /***********************************起点约束，一阶，二阶导约束 lb<= A*x <=ub 3n个变量**************************************/
-      row_index_start = 2 * n - 2;
+      row_index_start = 8 * n + 2 * n - 2;
+      // l, dl, ddl约束
       for (int i = 0; i < n; i++) {
         int row = row_index_start + 3 * i;
         int col = 3 * i;
         A_merge.insert(row, col) = 1;
         A_merge.insert(row + 1, col + 1) = 1;
         A_merge.insert(row + 2, col + 2) = 1;
-        // A_merge.insert(row_index_start + i + 2, i + 2) = 1;
       }
 
+      // 规划起点约束
       lb(0) = dp_final_path[0].l;
       lb(1) = dp_final_path[0].l_ds;
       lb(2) = dp_final_path[0].l_d_ds;
@@ -513,37 +508,34 @@ namespace carla_pnc {
       ub(1) = lb(1);
       ub(2) = lb(2);
 
-      // 边界约束，l_ds, l_d_ds约束
+      // 边界约束，l, l_ds, l_d_ds约束
       for (int i = 1; i < n; i++) {
-        // lb(3 * i + 1) = -DBL_MAX;
-        // lb(3 * i + 2) = -DBL_MAX;
-        // ub(3 * i + 1) = DBL_MAX;
-        // ub(3 * i + 2) = DBL_MAX;
-        lb(3 * i) = l_min(i) + width / 2;
+        // lb(3 * i) = l_min(i) + width / 2;
         lb(3 * i + 1) = -2.0;
         lb(3 * i + 2) = -0.1;
-        ub(3 * i) = l_max(i) - width / 2;
+        // ub(3 * i) = l_max(i) - width / 2;
         ub(3 * i + 1) = 2.0;
         ub(3 * i + 2) = 0.1;
       }
 
       /***********************************约束汇总**************************************/
+      /**
+        -inf< A * x  <= b
+      -inf< Aeq * x = beq
+            lb <= x <= ub
+      */      
 
-      // // 边界约束 Ax<=b 8n个变量
-      // lb_merge.block(0, 0, 8 * n, 1) = Eigen::MatrixXd::Ones(8 * n, 1) * (-DBL_MAX);
-      // ub_merge.block(0, 0, 8 * n, 1) = b;
+      // 边界约束 Ax<=b 8n个变量
+      lb_merge.block(0, 0, 8 * n, 1) = Eigen::MatrixXd::Ones(8 * n, 1) * (-DBL_MAX);
+      ub_merge.block(0, 0, 8 * n, 1) = b;
 
       // 连续性约束 Aeq*x = beq 2n-2个变量
-      // lb_merge.block(8 * n, 0, 2 * n - 2, 1) = beq;
-      // ub_merge.block(8 * n, 0, 2 * n - 2, 1) = beq;
-      lb_merge.block(0, 0, 2 * n - 2, 1) = beq;
-      ub_merge.block(0, 0, 2 * n - 2, 1) = beq;
+      lb_merge.block(8 * n, 0, 2 * n - 2, 1) = beq;
+      ub_merge.block(8 * n, 0, 2 * n - 2, 1) = beq;
 
       // 边界约束，起点约束，一阶，二阶导约束 lb<= A*x <=ub 3n个变量
-      // lb_merge.block(8 * n + 2 * n - 2, 0, 3 * n, 1) = lb;
-      // ub_merge.block(8 * n + 2 * n - 2, 0, 3 * n, 1) = ub;
-      lb_merge.block(2 * n - 2, 0, 3 * n, 1) = lb;
-      ub_merge.block(2 * n - 2, 0, 3 * n, 1) = ub;
+      lb_merge.block(8 * n + 2 * n - 2, 0, 3 * n, 1) = lb;
+      ub_merge.block(8 * n + 2 * n - 2, 0, 3 * n, 1) = ub;
 
       /***********************************调用osqp-eign**************************************/
       OsqpEigen::Solver solver;
@@ -551,7 +543,7 @@ namespace carla_pnc {
       solver.settings()->setWarmStart(true);
       solver.settings()->setVerbosity(false);                    // 不打印osqp日志
       solver.data()->setNumberOfVariables(3 * n);                // A矩阵列数
-      solver.data()->setNumberOfConstraints(2 * n - 2 + 3 * n);  // A矩阵行数
+      solver.data()->setNumberOfConstraints(8 * n + 2 * n - 2 + 3 * n);  // A矩阵行数
       solver.data()->setHessianMatrix(H);
       solver.data()->setGradient(f);
       solver.data()->setLinearConstraintsMatrix(A_merge);
@@ -647,6 +639,7 @@ namespace carla_pnc {
         // dp path动态规划
         calc_dp_path(initial_point);
         // ROS_INFO("get dp_path successuflly,the size is%zu",dp_final_path.size());
+
         // dp path插值
         dp_path_interpolation(dp_path);
 
