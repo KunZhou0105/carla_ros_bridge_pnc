@@ -238,60 +238,53 @@ namespace carla_pnc {
      * @param dp_final_path
      */
     void EMPlanner::calc_convex_space(const std::vector<FrenetPoint> &dp_final_path) {
-        // 边界初始化
-        int size = dp_final_path.size();
-        l_min = Eigen::VectorXd::Ones(size) * -10;
-        l_max = Eigen::VectorXd::Ones(size) * 10;
+      // 边界初始化
+      int size = dp_final_path.size();
+      l_min = Eigen::VectorXd::Ones(size) * -10;
+      l_max = Eigen::VectorXd::Ones(size) * 10;
 
-        // 遍历静态障碍物
-        for (auto &static_ob : collision_detection.static_obstacle_list) {
-          // 初始化障碍物边界
-          double ob_s_min = static_ob.point.s;  // 下边界
-          double ob_s_max = static_ob.point.s;  // 上边界
+      // 遍历静态障碍物
+      for (auto &static_ob : collision_detection.static_obstacle_list) {
+        // 初始化障碍物边界
+        double ob_s_min = static_ob.point.s;  // 下边界
+        double ob_s_max = static_ob.point.s;  // 上边界
 
-          double ob_l_min = static_ob.point.l;  // 右边界
-          double ob_l_max = static_ob.point.l;  // 左边界
+        double ob_l_min = static_ob.point.l;  // 右边界
+        double ob_l_max = static_ob.point.l;  // 左边界
 
-          for (auto &box_point : static_ob.collision_box) {
-            ob_s_min = std::min(box_point.s, ob_s_min );
-            ob_s_max = std::max(box_point.s, ob_s_max);
+        for (auto &box_point : static_ob.collision_box) {
+          ob_s_min = std::min(box_point.s, ob_s_min);
+          ob_s_max = std::max(box_point.s, ob_s_max);
 
-            ob_l_min = std::min(box_point.l, ob_l_min);
-            ob_l_max = std::max(box_point.l, ob_l_max);
-          }
-          // ROS_INFO("static ob s:%.2f, %.2f", static_ob.point.s, static_ob.point.l);
-          // ROS_INFO("ob_s_min:%.2f,ob_s_max:%.2f,ob_l_min:%.2f,ob_l_max:%.2f", ob_s_min, ob_s_max, ob_l_min, ob_l_max);
+          ob_l_min = std::min(box_point.l, ob_l_min);
+          ob_l_max = std::max(box_point.l, ob_l_max);
+        }
+        // ROS_INFO("static ob s:%.2f, %.2f", static_ob.point.s, static_ob.point.l);
+        // ROS_INFO("ob_s_min:%.2f,ob_s_max:%.2f,ob_l_min:%.2f,ob_l_max:%.2f", ob_s_min, ob_s_max, ob_l_min, ob_l_max);
 
-          // int start_index = get_obstacle_index(dp_final_path, ob_s_min);
-          // int end_index = get_obstacle_index(dp_final_path, ob_s_max);
+        int start_index = get_obstacle_index(dp_final_path, ob_s_min);
+        int end_index = get_obstacle_index(dp_final_path, ob_s_max);
+        int mid_index = get_obstacle_index(dp_final_path, static_ob.point.s);
 
-          int start_index = get_obstacle_index(dp_final_path, ob_s_min);
-          int end_index = get_obstacle_index(dp_final_path, ob_s_max);
-          int mid_index = get_obstacle_index(dp_final_path, static_ob.point.s);
+        // 若障碍物不在边界内，跳过
+        if (start_index == 0 || end_index == (size - 1)) {
+          continue;
+        }
+        double path_l = dp_final_path[mid_index].l;
 
-          // 若障碍物不在边界内，跳过
-          // if ((start_index == 0 && end_index == 0) ||
-          //     (start_index == (size - 1) && end_index == (size - 1)))
-          if (start_index == 0 || end_index == (size - 1)) {
-            continue;
-          }
-          double path_l = dp_final_path[mid_index].l;
-
-          // ROS_INFO("start_index:%d,end_index:%d", start_index, end_index);
-          for (int i = start_index; i <= end_index; ++i) {
-            // 从左边过
-            if (path_l >= static_ob.point.l) {
-              // l_min(i) = max(l_min(i), static_ob.point.l);
-              l_min(i) = std::max(l_min(i), ob_l_max);
-              // ROS_INFO("index:%d, l_min:%.2f", i, l_min(i));
-            } else {
-            // 从右边过
-            // l_max(i) = min(l_max(i), static_ob.point.l);
+        // ROS_INFO("start_index:%d,end_index:%d", start_index, end_index);
+        for (int i = start_index; i <= end_index; ++i) {
+          // 左侧绕行
+          if (path_l >= static_ob.point.l) {
+            l_min(i) = std::max(l_min(i), ob_l_max);
+            // ROS_INFO("index:%d, l_min:%.2f", i, l_min(i));
+          } else {
+            // 右侧绕行
             l_max(i) = std::min(l_max(i), ob_l_min);
             // ROS_INFO("index:%d, l_max:%.2f", i, l_max(i));
-            }
           }
         }
+      }
     }
 
     /**
@@ -375,16 +368,16 @@ namespace carla_pnc {
       Eigen::VectorXd f = Eigen::VectorXd::Zero(3 * n);
 
       // 不等式约束  A*x <= b，边界约束
-      // Eigen::SparseMatrix<double> A(4 * n, 3 * n);
-      // Eigen::VectorXd b = Eigen::VectorXd::Zero(4 * n);
+      // Eigen::SparseMatrix<double> A(8 * n, 3 * n);
+      // Eigen::VectorXd b = Eigen::VectorXd::Zero(8 * n);
 
       // 等式约束Aeq*x = beq,连续性约束
       Eigen::SparseMatrix<double> Aeq(2 * n - 2, 3 * n);
       Eigen::VectorXd beq = Eigen::VectorXd::Zero(2 * n - 2);
 
-      // 边界约束 lb <= x <= ub ,dl ddl变化量约束
+      // 边界约束 lb <= x <= ub, l dl ddl变化量约束
       Eigen::SparseMatrix<double> A_lu(3 * n, 3 * n);
-      A_lu.setIdentity();
+      A_lu.setIdentity();  // 单位矩阵
       Eigen::VectorXd lb = Eigen::VectorXd::Ones(3 * n) * (-DBL_MAX);
       Eigen::VectorXd ub = Eigen::VectorXd::Ones(3 * n) * DBL_MAX;
 
