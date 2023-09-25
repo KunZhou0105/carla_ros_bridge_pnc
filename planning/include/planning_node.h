@@ -40,6 +40,7 @@
 #include "reference_line/cubic_spline.hpp"
 #include "point_types.h"
 #include "common.h"
+#include "/home/zk/carla_ros_bridge_pnc/planning/src/plot/plot.h"
 
 namespace carla_pnc
 {
@@ -50,15 +51,16 @@ namespace carla_pnc
         void MainLoop();
 
     protected:
-        std::vector<path_point> global_path; // 全局路径
-        car_state cur_pose;                  // 车辆当前状态
-        bool planner_activate;               // 是否启用planner
-        double path_length;                  // 局部规划参考线长度
-        double cruise_speed;                 // 设定的巡航车速 m/s
-        bool first_loop;                     // 判断算否为第一次循环
-        int pre_match_index;                 // 上一周期的匹配点下标
-        bool get_odom;                       // 用于判断是否接受到定位信息
-        bool car_follow;                     // 用于判断是否跟车
+        Plot tcl_plot;                        // 画图类
+        std::vector<path_point> global_path;  // 全局路径
+        car_state cur_pose;                   // 车辆当前状态
+        bool planner_activate;                // 是否启用planner
+        double path_length;                   // 局部规划参考线长度
+        double cruise_speed;                  // 设定的巡航车速 m/s
+        bool first_loop;                      // 判断算否为第一次循环
+        int pre_match_index;                  // 上一周期的匹配点下标
+        bool get_odom;                        // 用于判断是否接受到定位信息
+        bool car_follow;                      // 用于判断是否跟车
 
         std::vector<Obstacle> detected_objects; // 感知到的障碍物
 

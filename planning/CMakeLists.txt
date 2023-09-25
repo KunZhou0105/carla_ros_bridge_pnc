@@ -4,6 +4,8 @@ project(planning)
 
 add_compile_options(-std=c++11)
 
+add_subdirectory(src/plot)
+
 find_package(catkin REQUIRED COMPONENTS
   rospy
   roscpp
@@ -33,6 +35,7 @@ include_directories(
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
   ${OsqpEigen_INCLUDE_DIR}
+  "/usr/include/python2.7"#python目录
 )
 
 add_executable(planning
@@ -42,7 +45,8 @@ add_executable(planning
   src/em_planner/em_planner.cpp
   src/planning_node.cpp
   src/planning_main.cpp
-  src/common.cpp)
+  src/common.cpp
+  src/plot/plot.cpp)
 
 add_dependencies(planning
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
@@ -61,6 +65,8 @@ target_link_libraries(planning
   ${catkin_LIBRARIES}
   ${EIGEN3_LIBRARIES}
   OsqpEigen::OsqpEigen
+  matplotlib_cpp
+  plot
 )
 
 target_link_libraries(cruise_speed_pub
