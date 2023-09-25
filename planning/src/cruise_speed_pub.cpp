@@ -10,13 +10,11 @@ using namespace std;
 
 double current_speed = 0;
 
-void currentSpeedCallback(const std_msgs::Float32::ConstPtr &msg)
-{
+void currentSpeedCallback(const std_msgs::Float32::ConstPtr &msg) {
   current_speed = msg->data;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   ros::init(argc, argv, "cruise_speed_pub");
   ros::NodeHandle n("~");
 
@@ -29,11 +27,11 @@ int main(int argc, char **argv)
 
   ofstream out;
 
-  while (ros::Time::now().toSec() <= 0.0001);
+  while (ros::Time::now().toSec() <= 0.0001) {}
 
-  vector<double> speed_cmds = {8}; // {1, 3, 5, 3, 1};
+  vector<double> speed_cmds = {8};  // {1, 3, 5, 3, 1};
   double time_interval = 10;                // second
-  double time_total = int(speed_cmds.size()) * time_interval;
+  double time_total = static_cast<int>(speed_cmds.size()) * time_interval;
   double time_elapsed = 0;
   double time_start = ros::Time::now().toSec();
 
@@ -45,12 +43,11 @@ int main(int argc, char **argv)
            time_start, time_total);
 
   // while (ros::ok() && time_elapsed <= time_total) {
-  while (ros::ok())
-  {
+  while (ros::ok()) {
     double time_now = ros::Time::now().toSec();
     time_elapsed = time_now - time_start;
     int speed_index = time_elapsed / time_interval;
-    speed_index = min(speed_index, int(speed_cmds.size() - 1));
+    speed_index = min(speed_index, static_cast<int>(speed_cmds.size() - 1));
     double cruise_speed = speed_cmds[speed_index];
     out << time_elapsed << ", " << cruise_speed << ", " << current_speed
         << endl;

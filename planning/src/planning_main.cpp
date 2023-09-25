@@ -13,15 +13,14 @@
 
 #include "planning_node.h"
 
-int main(int argc, char **argv)
-{
-    ros::init(argc, argv, "planning");
-    
-    carla_pnc::PlanningNode planning_node;
-    
-    ROS_INFO("Start Planning");
-    
-    planning_node.MainLoop();
+int main(int argc, char **argv) {
+  ros::init(argc, argv, "planning");
 
-    return 0;
+  carla_pnc::PlanningNode planning_node;
+
+  ROS_INFO("Start Planning");
+
+  planning_node.MainLoop();
+
+  return 0;
 }
