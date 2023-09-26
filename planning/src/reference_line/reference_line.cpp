@@ -14,85 +14,6 @@ using namespace std;
 
 namespace carla_pnc
 {
-  // /***********************************辅助函数**************************************/
-  // /**
-  //  * @brief 计算两点间的距离
-  //  *
-  //  * @param x1
-  //  * @param y1
-  //  * @param x2
-  //  * @param y2
-  //  * @return double
-  //  */
-  // double cal_distance(double x1, double y1, double x2, double y2)
-  // {
-  //   double dx = x2 - x1;
-  //   double dy = y2 - y1;
-  //   return std::sqrt(dx * dx + dy * dy);
-  // }
-
-  // /**
-  //  * @brief 寻找最近匹配点下标
-  //  *
-  //  * @param cur_x
-  //  * @param cur_y
-  //  * @param path
-  //  * @param pre_match_index
-  //  * @return
-  //  */
-  // int search_match_index(const double &cur_x, const double &cur_y,
-  //                        const std::vector<path_point> &path,
-  //                        const int &pre_match_index)
-  // {
-  //   double dist;
-  //   double min_dist = DBL_MAX;
-  //   int match_index = 0;
-  //   for (int i = pre_match_index; i < path.size(); i++)
-  //   {
-  //     dist = cal_distance(path[i].x, path[i].y, cur_x, cur_y);
-  //     if (dist < min_dist)
-  //     {
-  //       min_dist = dist;
-  //       match_index = i;
-  //     }
-  //   }
-  //   return match_index;
-  // }
-
-  // /**
-  //  * @brief 通过匹配点求投影点
-  //  *
-  //  * @param match_point 匹配点
-  //  * @param projection_point 投影点
-  //  * @return path_point
-  //  * https://zhuanlan.zhihu.com/p/429676544
-  //  */
-  // path_point match_to_projection(const car_state &cur_pose,
-  //                                const path_point &match_point)
-  // {
-  //   // 投影点其他值都与匹配点相同,求其x,y,yaw
-  //   path_point projection_point = match_point;
-
-  //   // 匹配点切向量tor
-  //   Eigen::Matrix<double, 2, 1> tor;
-  //   tor << cos(match_point.yaw), sin(match_point.yaw);
-
-  //   // 匹配点至自车向量d
-  //   Eigen::Matrix<double, 2, 1> d;
-  //   d << cur_pose.x - match_point.x, cur_pose.y - match_point.y;
-
-  //   // d在tor方向上的投影分量
-  //   double e_s = tor.transpose() * d;
-
-  //   // 求投影点x,y
-  //   projection_point.x = match_point.x + e_s * cos(match_point.yaw);
-  //   projection_point.y = match_point.y + e_s * sin(match_point.yaw);
-
-  //   // 求投影点的yaw
-  //   projection_point.yaw = match_point.yaw + match_point.cur * e_s;
-  //   return projection_point;
-  // }
-
   /*******************************Class ReferenceLine ******************************************/
 
   /**
@@ -101,19 +22,17 @@ namespace carla_pnc
    * @param lookahead_distance
    */
   ReferenceLine::ReferenceLine(double lookahead_distance,
-                               std::unordered_map<std::string, double> &referline_params)
-  {
+                               std::unordered_map<std::string, double> &referline_params) {
     lookahead_dist = lookahead_distance;
     match_index = 0;
-    ref_weight_smooth = referline_params["ref_weight_smooth"];           // 参考线平滑代价
-    ref_weight_path_length = referline_params["ref_weight_path_length"]; // 参考线轨迹长度代价
-    ref_weight_ref_deviation = referline_params["w_lat_offset"];         // 参考线偏移代价
+    ref_weight_smooth = referline_params["ref_weight_smooth"];            // 参考线平滑代价
+    ref_weight_path_length = referline_params["ref_weight_path_length"];  // 参考线轨迹长度代价
+    ref_weight_ref_deviation = referline_params["w_lat_offset"];          // 参考线偏移代价
     // 二次规划几何相似度约束
     x_lower_bound = referline_params["x_lower_bound"];
     x_upper_bound = referline_params["x_upper_bound"];
     y_lower_bound = referline_params["y_lower_bound"];
     y_upper_bound = referline_params["y_upper_bound"];
-
   }
 
   /**
@@ -127,14 +46,11 @@ namespace carla_pnc
    */
   int ReferenceLine::search_target_index(const double &cur_x, const double &cur_y,
                                          const std::vector<path_point> &path,
-                                         const double &lookahead_distance)
-  {
+                                         const double &lookahead_distance) {
     double dist;
-    for (int i = match_index; i < path.size(); i++)
-    {
+    for (int i = match_index; i < path.size(); i++) {
       dist = cal_distance(cur_x, cur_y, path[i].x, path[i].y);
-      if (dist > lookahead_distance)
-      {
+      if (dist > lookahead_distance) {
         return i;
       }
     }
@@ -151,8 +67,7 @@ namespace carla_pnc
    */
   std::vector<path_point> ReferenceLine::local_path_truncation(const car_state &cur_pose,
                                                                const std::vector<path_point> &global_path,
-                                                               const int &pre_match_index)
-  {
+                                                               const int &pre_match_index) {
     this->match_index = search_match_index(cur_pose.x, cur_pose.y, global_path, pre_match_index);
     // ROS_INFO("Match point_index is %d:", match_index);
 
@@ -172,12 +87,11 @@ namespace carla_pnc
    * @param local_path
    * @return std::vector<path_point>
    */
-  std::vector<path_point> ReferenceLine::smoothing(Spline2D &ref_frenet, const std::vector<path_point> &local_path)
-  {
+  std::vector<path_point> ReferenceLine::smoothing(Spline2D &ref_frenet,
+                                                   const std::vector<path_point> &local_path) {
     std::vector<path_point> ref_path;
     ref_path.clear();
-    for (double i = 0; i < ref_frenet.s.back(); i += 0.1)
-    {
+    for (double i = 0; i < ref_frenet.s.back(); i += 0.1) {
       std::array<double, 2> point_ = ref_frenet.calc_postion(i);
       path_point ref_point;
       ref_point.x = point_[0];
@@ -196,18 +110,15 @@ namespace carla_pnc
    *
    * @param local_path
    */
-  std::vector<path_point> ReferenceLine::discrete_smooth(const std::vector<path_point> &local_path)
-  {
+  std::vector<path_point> ReferenceLine::discrete_smooth(const std::vector<path_point> &local_path) {
     std::vector<path_point> smoothed_path;
     std::vector<std::pair<double, double>> path_point2d;
-    for (auto point : local_path)
-    {
+    for (auto point : local_path) {
       path_point2d.push_back(std::make_pair(point.x, point.y));
     }
     // 二次规划求解
     discrete_points_osqp(path_point2d);
-    for (auto point2d : path_point2d)
-    {
+    for (auto point2d : path_point2d) {
       path_point p;
       p.x = point2d.first;
       p.y = point2d.second;
@@ -242,8 +153,7 @@ namespace carla_pnc
    *A3 为单位矩阵
    * @param path_point2d
    */
-  void ReferenceLine::discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d)
-  {
+  void ReferenceLine::discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d) {
     int n = path_point2d.size();
 
     // 初始化A1,A2,A3，f,lb,ub矩阵
@@ -254,7 +164,7 @@ namespace carla_pnc
     // 参考线偏离代价矩阵 x'A3'A3x,单位阵
     Eigen::SparseMatrix<double> A3(2 * n, 2 * n);
 
-    Eigen::SparseMatrix<double> H(2 * n, 2 * n); // 必须是稀疏矩阵
+    Eigen::SparseMatrix<double> H(2 * n, 2 * n);  // 必须是稀疏矩阵
     Eigen::VectorXd f = Eigen::VectorXd::Zero(2 * n);
     Eigen::SparseMatrix<double> A(2 * n, 2 * n);
     Eigen::VectorXd lb = Eigen::VectorXd::Zero(2 * n);
@@ -265,8 +175,7 @@ namespace carla_pnc
 
     // 赋值f,lb,ub;
     //  MatrixXd下标从(0,0)开始,(1,2)表示第1行第2列
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       f(2 * i) = path_point2d[i].first;
       f(2 * i + 1) = path_point2d[i].second;
 
@@ -278,8 +187,7 @@ namespace carla_pnc
     }
 
     // 赋值A1
-    for (int j = 0; j < n - 2; j++)
-    {
+    for (int j = 0; j < n - 2; j++) {
       A1.insert(2 * j, 2 * j) = 1;
       A1.insert(2 * j, 2 * j + 2) = -2;
       A1.insert(2 * j, 2 * j + 4) = 1;
@@ -288,8 +196,7 @@ namespace carla_pnc
       A1.insert(2 * j + 1, 2 * j + 5) = 1;
     }
     // 赋值A2
-    for (int k = 0; k < n - 1; k++)
-    {
+    for (int k = 0; k < n - 1; k++) {
       A2.insert(2 * k, 2 * k) = 1;
       A2.insert(2 * k, 2 * k + 2) = -1;
       A2.insert(2 * k + 1, 2 * k + 1) = 1;
@@ -318,49 +225,39 @@ namespace carla_pnc
     solver.data()->setLowerBound(lb);
     solver.data()->setUpperBound(ub);
 
-    if (!solver.initSolver())
-    {
+    if (!solver.initSolver()) {
       ROS_INFO("QSOP init failed");
       return;
     }
-    if (!solver.solve())
-    {
+    if (!solver.solve()) {
       ROS_INFO("QSOP solve failed");
       return;
     }
     qp_solution = solver.getSolution();
 
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       path_point2d[i].first = qp_solution(2 * i);
       path_point2d[i].second = qp_solution(2 * i + 1);
     }
   }
 
-  void ReferenceLine::cal_heading(vector<path_point> &waypoints)
-  {
+  void ReferenceLine::cal_heading(vector<path_point> &waypoints) {
     double x_delta = 0.0;
     double y_delta = 0.0;
     double x_delta_2 = 0.0;
     double y_delta_2 = 0.0;
-    for (int i = 0; i < waypoints.size(); i++)
-    {
-      if (i == 0)
-      {
+    for (int i = 0; i < waypoints.size(); i++) {
+      if (i == 0) {
         x_delta = (waypoints[i + 1].x - waypoints[i].x);
         y_delta = (waypoints[i + 1].y - waypoints[i].y);
         x_delta_2 = (waypoints[i + 2].x - waypoints[i + 1].x) - (waypoints[i + 1].x - waypoints[i].x);
         y_delta_2 = (waypoints[i + 2].y - waypoints[i + 1].y) - (waypoints[i + 1].y - waypoints[i].y);
-      }
-      else if (i == waypoints.size() - 1)
-      {
+      } else if (i == waypoints.size() - 1) {
         x_delta = (waypoints[i].x - waypoints[i - 1].x);
         y_delta = (waypoints[i].y - waypoints[i - 1].y);
         x_delta_2 = (waypoints[i].x - waypoints[i - 1].x) - (waypoints[i - 1].x - waypoints[i - 2].x);
         y_delta_2 = (waypoints[i].y - waypoints[i - 1].y) - (waypoints[i - 1].y - waypoints[i - 2].y);
-      }
-      else
-      {
+      } else {
         x_delta = 0.5 * (waypoints[i + 1].x - waypoints[i - 1].x);
         y_delta = 0.5 * (waypoints[i + 1].y - waypoints[i - 1].y);
         x_delta_2 = (waypoints[i + 1].x - waypoints[i].x) - (waypoints[i].x - waypoints[i - 1].x);
@@ -372,4 +269,4 @@ namespace carla_pnc
     }
   }
 
-} // namespace carla_pnc
+}  // namespace carla_pnc

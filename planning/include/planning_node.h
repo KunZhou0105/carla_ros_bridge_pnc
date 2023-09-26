@@ -34,6 +34,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <fstream>
 #include "collision_detection/collision_detection.h"
 #include "reference_line/reference_line.h"
 #include "lattice_planner/lattice_planner.h"
@@ -54,7 +55,7 @@ class PlanningNode {
   void TestProc();
 
  protected:
-  bool bo_test_ = false;                // 仿真测试开关
+  bool bo_test_;                        // 仿真测试开关
   Plot tcl_plot;                        // 画图类
   std::vector<path_point> global_path;  // 全局路径
   car_state cur_pose;                   // 车辆当前状态
