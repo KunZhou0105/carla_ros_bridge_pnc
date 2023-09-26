@@ -65,7 +65,6 @@ namespace carla_pnc
     std::vector<path_point> discrete_smooth(const std::vector<path_point> &local_path);
     // 离散点平滑的二次规划求解
     void discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d);
-    void cal_heading(std::vector<path_point> &waypoints);
 
   private:
     // 离散点平滑平滑相关参数
