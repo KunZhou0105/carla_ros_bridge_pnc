@@ -2,6 +2,7 @@
 #define PLANNING_SRC_PLOT_PLOT_H_
 
 #include <vector>
+#include <string>
 
 #include "/home/zk/carla_ros_bridge_pnc/planning/include/point_types.h"
 // #include "plannging/include/em_planner/em_planner.h"
@@ -14,6 +15,17 @@ class Plot {
  public:
   Plot();
   ~Plot();
+
+  // 局部路径
+  void PlotLocalPath(const std::vector<path_point>& path_points,
+                     const std::string& color);
+
+  // 参考线
+  void PlotRefPath(const std::vector<path_point>& path_points,
+                   const std::string& color);
+
+  // 曲率
+  void PlotCurvature(const std::vector<path_point>& path_points);
 };
 }  // namespace carla_pnc
 

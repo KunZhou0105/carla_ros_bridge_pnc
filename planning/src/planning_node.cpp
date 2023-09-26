@@ -11,6 +11,7 @@
 #include "planning_node.h"
 using namespace std;
 
+namespace plt = matplotlibcpp;
 namespace carla_pnc {
   PlanningNode::PlanningNode() {
     cruise_speed = 5.0;
@@ -19,6 +20,7 @@ namespace carla_pnc {
     n.param<string>("role_name", role_name, "ego_vehicle");
     n.param<double>("path_length", path_length, 50.0);
     n.param<bool>("planner_activate", planner_activate, true);
+    n.param<bool>("bo_test_", bo_test_, false);
 
     n.param<string>("planning_method", planning_method, "EM");
 
@@ -216,23 +218,79 @@ namespace carla_pnc {
     }
   }
 
+  void PlanningNode::CreatePath() {
+    local_path.clear();
+    // 读取csv
+    std::ifstream file("/home/zk/carla_ros_bridge_pnc/planning/src/path.csv");
+    if (!file.is_open()) {
+      std::cout << "can not open file!" << std::endl;
+    }
+    std::string line;
+    std::getline(file, line);
+    // 用于存储读取的数据
+    std::vector<double> column1;
+    std::vector<double> column2;
+    while (std::getline(file, line)) {
+      std::istringstream iss(line);
+      double value1, value2;
+      // 以逗号分隔解析CSV行
+      char comma;
+      if (iss >> value1 >> comma >> value2) {
+        // 将解析后的数字存储到相应的向量中
+        column1.emplace_back(value1);
+        column2.emplace_back(value2);
+      }
+    }
+    for (size_t i = 0; i < column1.size(); ++i) {
+      path_point point;
+      point.x = column1[i];
+      point.y = column2[i];
+      local_path.emplace_back(point);
+    }
+    file.close();
+  }
+
+  void PlanningNode::TestProc() {
+    CreatePath();
+    // plt::figure(1);
+    tcl_plot.PlotLocalPath(local_path, "k");
+
+    /***********************************参考线平滑**************************************/
+    // 用Spline2D构建平滑的Frenet曲线坐标系
+    carla_pnc::ReferenceLine reference_line(path_length,
+                                            referline_params);
+    std::vector<double> x_set, y_set;
+    for (int i = 0; i < local_path.size(); i++) {
+      x_set.push_back(local_path[i].x);
+      y_set.push_back(local_path[i].y);
+    }
+    Spline2D ref_frenet(x_set, y_set);
+    // 离散点平滑
+    std::cout << "use_discrete_smooth: " << use_discrete_smooth << std::endl;
+    if (use_discrete_smooth) {
+      ref_path = reference_line.discrete_smooth(local_path);
+    } else {
+      // cubic Spline平滑
+      ref_path = reference_line.smoothing(ref_frenet, local_path);
+    }
+    std::cout << "RefPath size:  " << ref_path.size() << std::endl;
+    tcl_plot.PlotRefPath(ref_path, "y");
+    tcl_plot.PlotCurvature(ref_path);
+
+  }
+
   /**
    * @brief 主循环
    *
    */
   void PlanningNode::MainLoop() {
+    if (bo_test_) {
+      TestProc();
+      return;
+    }
     ros::Rate rate(10.0);
 
     /***********************************路径规划**************************************/
-
-    // carla_pnc::ReferenceLine reference_line(path_length,
-    //                                         ref_weight_smooth,
-    //                                         ref_weight_path_length,
-    //                                         ref_weight_ref_deviation,
-    //                                         x_lower_bound,
-    //                                         x_upper_bound,
-    //                                         y_lower_bound,
-    //                                         y_upper_bound);
 
     carla_pnc::ReferenceLine reference_line(path_length,
                                             referline_params);
@@ -267,11 +325,9 @@ namespace carla_pnc {
 
           // 离散点平滑
           if (use_discrete_smooth) {
-            // ROS_INFO("discrete_smooth");
             ref_path = reference_line.discrete_smooth(local_path);
           } else {
             // cubic Spline平滑
-            // ROS_INFO("curblic Spline smooth");
             ref_path = reference_line.smoothing(ref_frenet, local_path);
           }
           /***********************************Step3 确认规划起点，并投影到Frenet坐标系中得到（s0,l0）**************************************/
