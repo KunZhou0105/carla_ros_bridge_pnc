@@ -18,6 +18,7 @@
 #include <vector>
 #include <algorithm>
 #include <cfloat>
+#include <utility>
 #include <cmath>
 #include <Eigen/Eigen>
 #include <point_types.h>
@@ -41,6 +42,10 @@ namespace carla_pnc {
 
     FrenetPoint calc_frenet(const car_state &global_point,
                             const std::vector<path_point> &ref_path);
+
+    bool boComputePathProfile(const std::vector<std::pair<double, double>>& xy_points,
+                            std::vector<double>* headings, std::vector<double>* accumulated_s,
+                            std::vector<double>* kappas, std::vector<double>* dkappas);
 
 }  // namespace carla_pnc
 
