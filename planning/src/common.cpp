@@ -1,7 +1,6 @@
 #include "common.h"
 using namespace std;
-namespace carla_pnc
-{
+namespace carla_pnc {
     /***********************************辅助函数**************************************/
     /**
      * @brief 计算两点间的距离
@@ -12,11 +11,10 @@ namespace carla_pnc
      * @param y2
      * @return double
      */
-    double cal_distance(double x1, double y1, double x2, double y2)
-    {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        return std::sqrt(dx * dx + dy * dy);
+    double cal_distance(double x1, double y1, double x2, double y2) {
+      double dx = x2 - x1;
+      double dy = y2 - y1;
+      return std::sqrt(dx * dx + dy * dy);
     }
 
     /**
@@ -30,20 +28,17 @@ namespace carla_pnc
      */
     int search_match_index(const double &cur_x, const double &cur_y,
                            const std::vector<path_point> &path,
-                           const int &pre_match_index)
-    {
+                           const int &pre_match_index) {
         double dist;
         double min_dist = DBL_MAX;
         int match_index = 0;
-        for (int i = pre_match_index; i < path.size(); i++)
-        {
-            dist = cal_distance(path[i].x, path[i].y, cur_x, cur_y);
-            if (dist < min_dist)
-            {
-                min_dist = dist;
-                match_index = i;
-            }
+        for (int i = pre_match_index; i < path.size(); i++) {
+        dist = cal_distance(path[i].x, path[i].y, cur_x, cur_y);
+        if (dist < min_dist) {
+          min_dist = dist;
+          match_index = i;
         }
+      }
         return match_index;
     }
 
@@ -56,8 +51,7 @@ namespace carla_pnc
      * https://zhuanlan.zhihu.com/p/429676544
      */
     path_point match_to_projection(const car_state &cur_pose,
-                                   const path_point &match_point)
-    {
+                                   const path_point &match_point) {
         // 投影点其他值都与匹配点相同,求其x,y,yaw
         path_point projection_point = match_point;
 
@@ -89,8 +83,7 @@ namespace carla_pnc
      * @return FrenetPoint
      */
     FrenetPoint Cartesian2Frenet(const car_state &global_point,
-                                 const path_point &projection_point)
-    {
+                                 const path_point &projection_point) {
         FrenetPoint frenet_point;
         // 保留原有信息（向下转型不安全，此处手动赋值）
         frenet_point.x = global_point.x;
@@ -138,13 +131,10 @@ namespace carla_pnc
         frenet_point.l_d = global_point.v * std::sin(delta_theta);
 
         // 计算l_ds = l_d / s_d
-        if (fabs(frenet_point.s_d) < 1e-6)
-        {
+        if (fabs(frenet_point.s_d) < 1e-6) {
             frenet_point.l_ds = 0;
-        }
-        else
-        {
-            frenet_point.l_ds = frenet_point.l_d / frenet_point.s_d;
+        } else {
+          frenet_point.l_ds = frenet_point.l_d / frenet_point.s_d;
         }
 
         // 计算s_d_d, 此处忽略dkr/ds，简化为0
@@ -162,21 +152,17 @@ namespace carla_pnc
         frenet_point.l_d_d = global_point.a * std::sin(delta_theta);
 
         // 计算l_d_ds = (l_d_d - l_ds*s_d_d) / s_d^2
-        if (fabs(frenet_point.s_d < 1e-6))
-        {
+        if (fabs(frenet_point.s_d < 1e-6)) {
             frenet_point.l_d_ds = 0;
-        }
-        else
-        {
-            frenet_point.l_d_ds = (frenet_point.l_d_d - frenet_point.l_ds * frenet_point.s_d_d) /
-                                  pow(frenet_point.s_d, 2);
+        } else {
+          frenet_point.l_d_ds = (frenet_point.l_d_d - frenet_point.l_ds * frenet_point.s_d_d) /
+                                pow(frenet_point.s_d, 2);
         }
         return frenet_point;
     }
 
     FrenetPoint calc_frenet(const car_state &global_point,
-                            const std::vector<path_point> &ref_path)
-    {
+                            const std::vector<path_point> &ref_path) {
         // 计算匹配点下标
         int frenet_match_index = search_match_index(global_point.x, global_point.y, ref_path, 0);
 
@@ -187,4 +173,4 @@ namespace carla_pnc
         FrenetPoint frenet_point = Cartesian2Frenet(global_point, projection_point);
         return frenet_point;
     }
-} // carla_pnc
+}  // namespace carla_pnc

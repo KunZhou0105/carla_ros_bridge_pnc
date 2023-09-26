@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef PLANNING_INCLUDE_COMMON_H_
+#define PLANNING_INCLUDE_COMMON_H_
 
 #include <iostream>
 #include <sstream>
@@ -19,12 +19,11 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
-#include <point_types.h>
 #include <Eigen/Eigen>
+#include <point_types.h>
 #include "OsqpEigen/OsqpEigen.h"
 
-namespace carla_pnc
-{
+namespace carla_pnc {
 
     /***********************************辅助函数**************************************/
     double cal_distance(double x1, double y1, double x2, double y2);
@@ -43,6 +42,6 @@ namespace carla_pnc
     FrenetPoint calc_frenet(const car_state &global_point,
                             const std::vector<path_point> &ref_path);
 
-} // carla_pnc
+}  // namespace carla_pnc
 
-#endif // COMMON_H
+#endif  // PLANNING_INCLUDE_COMMON_H_

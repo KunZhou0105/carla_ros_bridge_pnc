@@ -15,7 +15,6 @@ using namespace std;
 namespace carla_pnc
 {
   /*******************************Class ReferenceLine ******************************************/
-
   /**
    * @brief Construct a new Reference Line:: Reference Line object
    *
