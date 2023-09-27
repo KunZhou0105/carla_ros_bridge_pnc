@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  *
  */
-#ifndef REFERENCELINE_H
-#define REFERENCELINE_H
+#ifndef PLANNING_INCLUDE_REFERENCE_LINE_REFERENCE_LINE_H_
+#define PLANNING_INCLUDE_REFERENCE_LINE_REFERENCE_LINE_H_
 
 #include <algorithm>
 #include <cfloat>
@@ -24,23 +24,9 @@
 #include "reference_line/cubic_spline.hpp"
 #include "common.h"
 
-namespace carla_pnc
-{
-  // /***********************************辅助函数**************************************/
-  // double cal_distance(double x1, double y1, double x2, double y2);
-
-  // int search_match_index(const double &cur_x, const double &cur_y,
-  //                        const std::vector<path_point> &waypoints,
-  //                        const int &pre_match_index);
-
-  // path_point match_to_projection(const car_state &cur_pose,
-  //                                const path_point &match_point);
-
-  // // std::vector<car_state> cal_collision_box(const car_state &point, const double &x_rad, const double &y_rad);
-
-  class ReferenceLine
-  {
-  public:
+namespace carla_pnc {
+class ReferenceLine {
+ public:
     double lookahead_dist;
     int match_index;
 
@@ -66,16 +52,16 @@ namespace carla_pnc
     // 离散点平滑的二次规划求解
     void discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d);
 
-  private:
-    // 离散点平滑平滑相关参数
-    double ref_weight_smooth;        // 参考线平滑代价
-    double ref_weight_path_length;   // 参考线轨迹长度代价
-    double ref_weight_ref_deviation; // 参考线偏移代价
-    // 二次规划几何相似度约束
-    double x_lower_bound;
-    double x_upper_bound;
-    double y_lower_bound;
-    double y_upper_bound;
-  };
-} // namespace carla_pnc
-#endif // REFERENCELINE_H
+ private:
+  // 离散点平滑平滑相关参数
+  double ref_weight_smooth;         // 参考线平滑代价
+  double ref_weight_path_length;    // 参考线轨迹长度代价
+  double ref_weight_ref_deviation;  // 参考线偏移代价
+  // 二次规划几何相似度约束
+  double x_lower_bound;
+  double x_upper_bound;
+  double y_lower_bound;
+  double y_upper_bound;
+};
+}  // namespace carla_pnc
+#endif  // PLANNING_INCLUDE_REFERENCE_LINE_REFERENCE_LINE_H_
