@@ -181,8 +181,8 @@ namespace carla_pnc {
      * @return 
      */
     bool boComputePathProfile(const std::vector<std::pair<double, double>>& xy_points,
-                            std::vector<double>* headings, std::vector<double>* accumulated_s,
-                            std::vector<double>* kappas, std::vector<double>* dkappas) {
+                              std::vector<double>* headings, std::vector<double>* accumulated_s,
+                              std::vector<double>* kappas, std::vector<double>* dkappas) {
       headings->clear();
       kappas->clear();
       dkappas->clear();
