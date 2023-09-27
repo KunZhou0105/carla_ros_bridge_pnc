@@ -12,8 +12,7 @@
 
 using namespace std;
 
-namespace carla_pnc
-{
+namespace carla_pnc {
   /*******************************Class ReferenceLine ******************************************/
   /**
    * @brief Construct a new Reference Line:: Reference Line object
@@ -117,13 +116,25 @@ namespace carla_pnc
     }
     // 二次规划求解
     discrete_points_osqp(path_point2d);
-    for (auto point2d : path_point2d) {
-      path_point p;
-      p.x = point2d.first;
-      p.y = point2d.second;
-      smoothed_path.push_back(p);
+    // Compute ref path profile
+    std::vector<double> headings;
+    std::vector<double> kappas;
+    std::vector<double> dkappas;
+    std::vector<double> accumulated_s;
+    if (!boComputePathProfile(
+      path_point2d, &headings, &accumulated_s, &kappas, &dkappas)) {
+      std::cout << "compute ref path profile fail!" << std::endl;
     }
-    cal_heading(smoothed_path);
+    for (size_t i = 0; i < path_point2d.size(); ++i) {
+      path_point point;
+      point.x = path_point2d[i].first;
+      point.y = path_point2d[i].second;
+      point.yaw = headings[i];
+      point.cur = kappas[i];
+      point.dcur = dkappas[i];
+      point.s_ = accumulated_s[i];
+      smoothed_path.emplace_back(point);
+    }
     return smoothed_path;
   }
 
@@ -239,33 +250,4 @@ namespace carla_pnc
       path_point2d[i].second = qp_solution(2 * i + 1);
     }
   }
-
-  void ReferenceLine::cal_heading(vector<path_point> &waypoints) {
-    double x_delta = 0.0;
-    double y_delta = 0.0;
-    double x_delta_2 = 0.0;
-    double y_delta_2 = 0.0;
-    for (int i = 0; i < waypoints.size(); i++) {
-      if (i == 0) {
-        x_delta = (waypoints[i + 1].x - waypoints[i].x);
-        y_delta = (waypoints[i + 1].y - waypoints[i].y);
-        x_delta_2 = (waypoints[i + 2].x - waypoints[i + 1].x) - (waypoints[i + 1].x - waypoints[i].x);
-        y_delta_2 = (waypoints[i + 2].y - waypoints[i + 1].y) - (waypoints[i + 1].y - waypoints[i].y);
-      } else if (i == waypoints.size() - 1) {
-        x_delta = (waypoints[i].x - waypoints[i - 1].x);
-        y_delta = (waypoints[i].y - waypoints[i - 1].y);
-        x_delta_2 = (waypoints[i].x - waypoints[i - 1].x) - (waypoints[i - 1].x - waypoints[i - 2].x);
-        y_delta_2 = (waypoints[i].y - waypoints[i - 1].y) - (waypoints[i - 1].y - waypoints[i - 2].y);
-      } else {
-        x_delta = 0.5 * (waypoints[i + 1].x - waypoints[i - 1].x);
-        y_delta = 0.5 * (waypoints[i + 1].y - waypoints[i - 1].y);
-        x_delta_2 = (waypoints[i + 1].x - waypoints[i].x) - (waypoints[i].x - waypoints[i - 1].x);
-        y_delta_2 = (waypoints[i + 1].y - waypoints[i].y) - (waypoints[i].y - waypoints[i - 1].y);
-      }
-      waypoints[i].yaw = std::atan2(y_delta, x_delta);
-      //  参数方程曲率计算
-      waypoints[i].cur = std::abs(y_delta_2 * x_delta - x_delta_2 * y_delta) / std::pow((x_delta * x_delta + y_delta * y_delta), 3 / 2);
-    }
-  }
-
 }  // namespace carla_pnc
