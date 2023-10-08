@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen3 REQUIRED)
 find_package(OsqpEigen REQUIRED)
+find_package(osqp REQUIRED)
 
 catkin_package(
   CATKIN_DEPENDS
@@ -67,6 +68,7 @@ target_link_libraries(planning
   OsqpEigen::OsqpEigen
   matplotlib_cpp
   plot
+  osqp
 )
 
 target_link_libraries(cruise_speed_pub
