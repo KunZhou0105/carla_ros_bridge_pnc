@@ -16,8 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace carla_pnc
-{
+namespace carla_pnc {
   // 全局坐标系路径点
 class path_point {
  public:

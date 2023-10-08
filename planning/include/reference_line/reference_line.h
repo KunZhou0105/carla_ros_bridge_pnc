@@ -27,30 +27,30 @@
 namespace carla_pnc {
 class ReferenceLine {
  public:
-    double lookahead_dist;
-    int match_index;
+  double lookahead_dist;
+  int match_index;
 
-    ReferenceLine(double lookahead_distance) : lookahead_dist(lookahead_distance), match_index(0) {}
+  ReferenceLine(double lookahead_distance) : lookahead_dist(lookahead_distance), match_index(0) {}
 
-    ReferenceLine(double lookahead_distance,
-                  std::unordered_map<std::string, double> &referline_params);
+  ReferenceLine(double lookahead_distance,
+                std::unordered_map<std::string, double> &referline_params);
 
-    int search_target_index(const double &cur_x, const double &cur_y,
-                            const std::vector<path_point> &waypoints,
-                            const double &lookahead_distance);
+  int search_target_index(const double &cur_x, const double &cur_y,
+                          const std::vector<path_point> &waypoints,
+                          const double &lookahead_distance);
 
-    std::vector<path_point> local_path_truncation(const car_state &cur_pose,
-                                                  const std::vector<path_point> &global_path,
-                                                  const int &pre_match_index);
+  std::vector<path_point> local_path_truncation(const car_state &cur_pose,
+                                                const std::vector<path_point> &global_path,
+                                                const int &pre_match_index);
 
-    // cublic Spiline平滑
-    std::vector<path_point> smoothing(Spline2D &ref_frenet,
-                                      const std::vector<path_point> &local_path);
+  // cublic Spiline平滑
+  std::vector<path_point> smoothing(Spline2D &ref_frenet,
+                                    const std::vector<path_point> &local_path);
 
-    // 离散点平滑（Apollo）
-    std::vector<path_point> discrete_smooth(const std::vector<path_point> &local_path);
-    // 离散点平滑的二次规划求解
-    void discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d);
+  // 离散点平滑（Apollo）
+  std::vector<path_point> discrete_smooth(const std::vector<path_point> &local_path);
+  // 离散点平滑的二次规划求解
+  void discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d);
 
  private:
   // 离散点平滑平滑相关参数
