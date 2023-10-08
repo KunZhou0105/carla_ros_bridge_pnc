@@ -16,16 +16,20 @@ class Plot {
   Plot();
   ~Plot();
 
-  // 局部路径
-  void PlotLocalPath(const std::vector<path_point>& path_points,
+  // route
+  void PlotRoutePath(const std::vector<path_point>& path_points,
                      const std::string& color);
 
   // 参考线
   void PlotRefPath(const std::vector<path_point>& path_points,
                    const std::string& color);
 
-  // 曲率
-  void PlotCurvature(const std::vector<path_point>& path_points);
+  // 平滑前曲率
+  void PlotRawCurvature(const std::vector<path_point>& path_points,
+                        const std::string& color);
+  // 平滑后曲率
+  void PlotRefCurvature(const std::vector<path_point>& path_points,
+                        const std::string& color);
 };
 }  // namespace carla_pnc
 
