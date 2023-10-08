@@ -110,24 +110,24 @@ namespace carla_pnc {
    */
   std::vector<path_point> ReferenceLine::discrete_smooth(const std::vector<path_point> &local_path) {
     std::vector<path_point> smoothed_path;
-    std::vector<std::pair<double, double>> path_point2d;
+    std::vector<std::pair<double, double>> path_point2d, smoothed_point2d;
     for (auto point : local_path) {
       path_point2d.push_back(std::make_pair(point.x, point.y));
     }
     // 二次规划求解
-    discrete_points_osqp(path_point2d);
+    discrete_points_osqp(path_point2d, &smoothed_point2d);
     // Compute ref path profile
     std::vector<double> headings;
     std::vector<double> kappas;
     std::vector<double> dkappas;
     std::vector<double> accumulated_s;
     if (!boComputePathProfile(
-      path_point2d, &headings, &accumulated_s, &kappas, &dkappas)) {
+      smoothed_point2d, &headings, &accumulated_s, &kappas, &dkappas)) {
       std::cout << "compute ref path profile fail!" << std::endl;
     }
-    for (size_t i = 0; i < path_point2d.size(); ++i) {
+    for (size_t i = 0; i < smoothed_point2d.size(); ++i) {
       path_point point;
-      point.x = path_point2d[i].first;
+      point.x = smoothed_point2d[i].first;
       point.y = path_point2d[i].second;
       point.yaw = headings[i];
       point.cur = kappas[i];
@@ -163,7 +163,8 @@ namespace carla_pnc {
    *A3 为单位矩阵
    * @param path_point2d
    */
-  void ReferenceLine::discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d) {
+  void ReferenceLine::discrete_points_osqp(const std::vector<std::pair<double, double>> &path_point2d,
+                                           std::vector<std::pair<double, double>> *smoothed_point2d) {
     int n = path_point2d.size();
 
     // 初始化A1,A2,A3，f,lb,ub矩阵
@@ -245,9 +246,10 @@ namespace carla_pnc {
     }
     qp_solution = solver.getSolution();
 
+    (*smoothed_point2d).resize(n);
     for (int i = 0; i < n; i++) {
-      path_point2d[i].first = qp_solution(2 * i);
-      path_point2d[i].second = qp_solution(2 * i + 1);
+      (*smoothed_point2d)[i].first = qp_solution(2 * i);
+      (*smoothed_point2d)[i].second = qp_solution(2 * i + 1);
     }
   }
 }  // namespace carla_pnc
