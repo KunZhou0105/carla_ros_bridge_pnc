@@ -241,10 +241,28 @@ namespace carla_pnc {
         column2.emplace_back(value2);
       }
     }
+    std::vector<std::pair<double, double>> path_point2d;
     for (size_t i = 0; i < column1.size(); ++i) {
+      path_point2d.push_back(std::make_pair(column1[i], column2[i]));
+    }
+
+    // Compute local path profile
+    std::vector<double> headings;
+    std::vector<double> kappas;
+    std::vector<double> dkappas;
+    std::vector<double> accumulated_s;
+    if (!boComputePathProfile(
+      path_point2d, &headings, &accumulated_s, &kappas, &dkappas)) {
+      std::cout << "compute ref path profile fail!" << std::endl;
+    }
+    for (size_t i = 0; i < path_point2d.size(); ++i) {
       path_point point;
-      point.x = column1[i];
-      point.y = column2[i];
+      point.x = path_point2d[i].first;
+      point.y = path_point2d[i].second;
+      point.yaw = headings[i];
+      point.cur = kappas[i];
+      point.dcur = dkappas[i];
+      point.s_ = accumulated_s[i];
       local_path.emplace_back(point);
     }
     file.close();
@@ -256,27 +274,18 @@ namespace carla_pnc {
     tcl_plot.PlotLocalPath(local_path, "k");
 
     /***********************************参考线平滑**************************************/
-    // 用Spline2D构建平滑的Frenet曲线坐标系
+    // 构建平滑的Frenet曲线坐标系
     carla_pnc::ReferenceLine reference_line(path_length,
                                             referline_params);
-    std::vector<double> x_set, y_set;
-    for (int i = 0; i < local_path.size(); i++) {
-      x_set.push_back(local_path[i].x);
-      y_set.push_back(local_path[i].y);
-    }
-    Spline2D ref_frenet(x_set, y_set);
-    // 离散点平滑
-    std::cout << "use_discrete_smooth: " << use_discrete_smooth << std::endl;
-    if (use_discrete_smooth) {
-      ref_path = reference_line.discrete_smooth(local_path);
-    } else {
-      // cubic Spline平滑
-      ref_path = reference_line.smoothing(ref_frenet, local_path);
-    }
-    std::cout << "RefPath size:  " << ref_path.size() << std::endl;
+    // 离散点平滑(apollo)
+    ref_path = reference_line.discrete_smooth(local_path);
     tcl_plot.PlotRefPath(ref_path, "y");
-    tcl_plot.PlotCurvature(ref_path);
+    // tcl_plot.PlotCurvature(local_path);
 
+    tcl_plot.PlotCurvature(ref_path);
+    for (const auto& point : ref_path) {
+      std::cout << "s: " << point.s_ << std::endl;
+    }
   }
 
   /**
@@ -291,7 +300,6 @@ namespace carla_pnc {
     ros::Rate rate(10.0);
 
     /***********************************路径规划**************************************/
-
     carla_pnc::ReferenceLine reference_line(path_length,
                                             referline_params);
 
@@ -339,7 +347,7 @@ namespace carla_pnc {
               global_initial_point = cur_pose;
               first_loop = false;
             } else if (fabs(cur_pose.x - pre_final_path.frenet_path[0].x) > 2.0 ||
-                     fabs(cur_pose.y - pre_final_path.frenet_path[0].y) > 0.5) {
+                       fabs(cur_pose.y - pre_final_path.frenet_path[0].y) > 0.5) {
               /*
               * 比较车辆当前位置与上个周期current_time所匹配的轨迹点
               * 若相差过大，则根据车辆当前位置，通过运动学公式后获取推一个周期的位置，作为本周期的规划起点
@@ -365,17 +373,17 @@ namespace carla_pnc {
 
               global_initial_point = next_pose;
             } else if (pre_final_path.frenet_path.size()) {
-              // 若相差不大,则选用current_time+100ms的轨迹点作为规划起点进行规划，作为本周期的规划起点
+                // 若相差不大,则选用current_time+100ms的轨迹点作为规划起点进行规划，作为本周期的规划起点
                 if (planning_method == "Lattice") {
-                    global_initial_point = pre_final_path.frenet_path[5];
+                  global_initial_point = pre_final_path.frenet_path[5];
                 } else {
-                    // EM Planner目前只完成路径规划部分，还没有时间信息
-                    int index = cur_pose.v;
-                    global_initial_point = pre_final_path.frenet_path[index];
+                  // EM Planner目前只完成路径规划部分，还没有时间信息
+                  int index = cur_pose.v;
+                  global_initial_point = pre_final_path.frenet_path[index];
                 }
 
                 // global_initial_point = cur_pose;
-              }
+            }
 
               // 将规划起点投影到Frenet坐标系中
               // // 计算匹配点下标
@@ -387,21 +395,14 @@ namespace carla_pnc {
               // // 计算Frenet坐标
               // FrenetPoint frenet_initial_point = Cartesian2Frenet(global_initial_point, projection_point);
 
-              FrenetPoint frenet_initial_point = calc_frenet(global_initial_point, ref_path);
-              // ROS_INFO("Get Initial Point Successfully");
+            FrenetPoint frenet_initial_point = calc_frenet(global_initial_point, ref_path);
+            // ROS_INFO("Get Initial Point Successfully");
 
-              /***********************************Step4 Lattice Planner**************************************/
+            /***********************************Step4 Lattice Planner**************************************/
 
-              CollisionDetection collision_detection(detected_objects, collision_distance, ref_path);  // 碰撞检测模块
+            CollisionDetection collision_detection(detected_objects, collision_distance, ref_path);  // 碰撞检测模块
 
-              if (planning_method == "Lattice") {
-              // LatticePlanner planner(sample_max_time, sample_min_time, sample_time_step,
-              //                        sample_lat_width, sample_width_length,
-              //                        w_object, w_lon_jerk,
-              //                        w_lat_offset, w_lat_acc,
-              //                        cruise_speed,
-              //                        collision_detection);
-
+            if (planning_method == "Lattice") {
               LatticePlanner planner(lattice_params,
                                       cruise_speed,
                                       collision_detection);
@@ -440,44 +441,39 @@ namespace carla_pnc {
                     leader_car = ob_fp;
                     break;
                 }
-              }
-              // 所有的采样轨迹，用于可视化
-              sample_paths = planner.get_planning_paths(ref_frenet, frenet_initial_point, leader_car, car_follow);
+                }
+                // 所有的采样轨迹，用于可视化
+                sample_paths = planner.get_planning_paths(ref_frenet, frenet_initial_point, leader_car, car_follow);
 
-              // 获取最佳轨迹
-              final_path = planner.planning(ref_frenet, frenet_initial_point, leader_car, car_follow);
+                // 获取最佳轨迹
+                final_path = planner.planning(ref_frenet, frenet_initial_point, leader_car, car_follow);
 
-              pre_final_path = final_path;  // 用于存储上一个周期的轨迹
+                pre_final_path = final_path;  // 用于存储上一个周期的轨迹
 
-              history_paths.push_back(final_path);  // 历史轨迹，用于可视化
-
-              ROS_INFO("Selected best path successfully,the size is%d", final_path.size_);
-              // ROS_INFO("Selected paths successfully,the size is%zu", sample_paths.size());
-
-              // for(unsigned int i = 0; i< final_path.size_;i++){
-              //     ROS_INFO("best path____x:%.2f,  y:%.2f", final_path.frenet_path[i].x,final_path.frenet_path[i].y);
-              // }
-              } else if (planning_method == "EM") {
-                EMPlanner planner(collision_detection,
-                                  dp_path_params,
-                                  qp_path_params);
-                final_path = planner.planning(ref_frenet, frenet_initial_point);
-                pre_final_path = final_path;          // 用于存储上一个周期的轨迹
                 history_paths.push_back(final_path);  // 历史轨迹，用于可视化
+
                 ROS_INFO("Selected best path successfully,the size is%d", final_path.size_);
+                } else if (planning_method == "EM") {
+                  EMPlanner planner(collision_detection,
+                                    dp_path_params,
+                                    qp_path_params);
+                  final_path = planner.planning(ref_frenet, frenet_initial_point);
+                  pre_final_path = final_path;          // 用于存储上一个周期的轨迹
+                  history_paths.push_back(final_path);  // 历史轨迹，用于可视化
+                  ROS_INFO("Selected best path successfully,the size is%d", final_path.size_);
+                }
+                /*******************************visualization******************************************/
+                // 最优规划轨迹Rviz可视化
+                final_path_visualization(final_path);
+
+                // 采样轨迹Rviz可视化
+                sample_paths_visualization(sample_paths);
+
+                // 显示障碍物的速度
+                object_speed_visualization(collision_detection.detected_objects);
               }
-              /*******************************visualization******************************************/
-              // 最优规划轨迹Rviz可视化
-              final_path_visualization(final_path);
-
-              // 采样轨迹Rviz可视化
-              sample_paths_visualization(sample_paths);
-
-              // 显示障碍物的速度
-              object_speed_visualization(collision_detection.detected_objects);
             }
           }
-        }
         // 参考线可视化
         ref_path_visualization(ref_path);
 
@@ -518,7 +514,6 @@ namespace carla_pnc {
 
         ros::spinOnce();
         rate.sleep();
-        // ROS_INFO("The iteration end.");
     }
   }
 
