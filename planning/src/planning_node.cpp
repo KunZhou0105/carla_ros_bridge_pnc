@@ -269,23 +269,19 @@ namespace carla_pnc {
   }
 
   void PlanningNode::TestProc() {
+    // 读取csv文件，生成route
     CreatePath();
-    // plt::figure(1);
-    tcl_plot.PlotLocalPath(local_path, "k");
-
     /***********************************参考线平滑**************************************/
     // 构建平滑的Frenet曲线坐标系
     carla_pnc::ReferenceLine reference_line(path_length,
                                             referline_params);
     // 离散点平滑(apollo)
     ref_path = reference_line.discrete_smooth(local_path);
+    tcl_plot.PlotRoutePath(local_path, "k");
     tcl_plot.PlotRefPath(ref_path, "y");
-    // tcl_plot.PlotCurvature(local_path);
 
-    tcl_plot.PlotCurvature(ref_path);
-    for (const auto& point : ref_path) {
-      std::cout << "s: " << point.s_ << std::endl;
-    }
+    tcl_plot.PlotRawCurvature(local_path, "k");
+    tcl_plot.PlotRefCurvature(ref_path, "b--");
   }
 
   /**
