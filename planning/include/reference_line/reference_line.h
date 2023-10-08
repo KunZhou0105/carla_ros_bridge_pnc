@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <utility>
 #include <ros/ros.h>
 #include <Eigen/Eigen>
 #include "OsqpEigen/OsqpEigen.h"
@@ -50,7 +51,8 @@ class ReferenceLine {
   // 离散点平滑（Apollo）
   std::vector<path_point> discrete_smooth(const std::vector<path_point> &local_path);
   // 离散点平滑的二次规划求解
-  void discrete_points_osqp(std::vector<std::pair<double, double>> &path_point2d);
+  void discrete_points_osqp(const std::vector<std::pair<double, double>> &path_point2d,
+                            std::vector<std::pair<double, double>> *ptr_smoothed_point2d);
 
  private:
   // 离散点平滑平滑相关参数
