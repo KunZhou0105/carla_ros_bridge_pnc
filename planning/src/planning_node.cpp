@@ -221,7 +221,7 @@ namespace carla_pnc {
   void PlanningNode::CreatePath() {
     local_path.clear();
     // 读取csv
-    std::ifstream file("/home/zk/carla_ros_bridge_pnc/planning/src/path.csv");
+    std::ifstream file("/home/zk/carla_ros_bridge_pnc/planning/src/d-mB-1.csv");
     if (!file.is_open()) {
       std::cout << "can not open file!" << std::endl;
     }
@@ -268,10 +268,7 @@ namespace carla_pnc {
     file.close();
   }
 
-  void PlanningNode::TestProc() {
-    // 读取csv文件，生成route
-    CreatePath();
-    /***********************************参考线平滑**************************************/
+  void PlanningNode::RefSmoothTest() {
     // 构建平滑的Frenet曲线坐标系
     carla_pnc::ReferenceLine reference_line(path_length,
                                             referline_params);
@@ -282,6 +279,15 @@ namespace carla_pnc {
 
     tcl_plot.PlotRawCurvature(local_path, "k");
     tcl_plot.PlotRefCurvature(ref_path, "b--");
+    std::cout << "s = " << ref_path.back().s_ << std::endl;
+  }
+
+
+  void PlanningNode::TestProc() {
+    // 读取csv文件，生成route
+    CreatePath();
+    // 参考线仿真
+    RefSmoothTest();
   }
 
   /**
@@ -382,13 +388,13 @@ namespace carla_pnc {
             }
 
               // 将规划起点投影到Frenet坐标系中
-              // // 计算匹配点下标
+              // 计算匹配点下标
               // int frenet_match_index = search_match_index(global_initial_point.x, global_initial_point.y, ref_path, 0);
 
-              // // 通过匹配点求投影点
+              // 通过匹配点求投影点
               // path_point projection_point = match_to_projection(global_initial_point, ref_path[frenet_match_index]);
 
-              // // 计算Frenet坐标
+              // 计算Frenet坐标
               // FrenetPoint frenet_initial_point = Cartesian2Frenet(global_initial_point, projection_point);
 
             FrenetPoint frenet_initial_point = calc_frenet(global_initial_point, ref_path);

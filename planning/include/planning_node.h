@@ -53,6 +53,8 @@ class PlanningNode {
   void CreatePath();
   // 仿真测试
   void TestProc();
+  // 参考线平滑test
+  void RefSmoothTest();
 
  protected:
   bool bo_test_;                        // 仿真测试开关
