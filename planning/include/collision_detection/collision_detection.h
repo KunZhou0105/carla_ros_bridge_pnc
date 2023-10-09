@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef COLLISION_DETECTION_H
-#define COLLISION_DETECTION_H
+#ifndef PLANNING_INCLUDE_COLLISION_DETECTION_COLLISION_DETECTION_H_
+#define PLANNING_INCLUDE_COLLISION_DETECTION_COLLISION_DETECTION_H_
 
 #include <cfloat>
 #include <cmath>
@@ -24,42 +24,39 @@
 #include "common.h"
 
 
-namespace carla_pnc
-{
+namespace carla_pnc {
 
-    class Obstacle
-    {
-    public:
-        FrenetPoint point;
-        double x_rad;                         // x方向半径
-        double y_rad;                         // y方向半径
-        std::vector<FrenetPoint> collision_box; // 碰撞BOX，用8个点表示(4个顶点+4条边的中点)
-    };
+class Obstacle {
+ public:
+  FrenetPoint point;
+  double x_rad;                            // x方向半径
+  double y_rad;                            // y方向半径
+  std::vector<FrenetPoint> collision_box;  // 碰撞BOX，用8个点表示(4个顶点+4条边的中点)
+};
 
-    class CollisionDetection
-    {
-    public:
-        double collision_distance; // 碰撞距离
-        std::vector<Obstacle> detected_objects;
-        std::vector<Obstacle> static_obstacle_list;
-        std::vector<Obstacle> dynamic_obstacle_list;
-        std::vector<path_point> ref_path; //参考线
+class CollisionDetection {
+ public:
+  double collision_distance;  // 碰撞距离
+  std::vector<Obstacle> detected_objects;
+  std::vector<Obstacle> static_obstacle_list;
+  std::vector<Obstacle> dynamic_obstacle_list;
+  std::vector<path_point> ref_path;  // 参考线
 
-        CollisionDetection() = default;
-        
-        CollisionDetection(const std::vector<Obstacle> &detected_objects,
-                           const double &collision_distance,
-                           const std::vector<path_point> &ref_path);
-        
-        void obstacle_classification(std::vector<Obstacle> &detected_objects);
+  CollisionDetection() = default;
 
-        void cal_collision_box(Obstacle &object);
+  CollisionDetection(const std::vector<Obstacle> &detected_objects,
+                      const double &collision_distance,
+                      const std::vector<path_point> &ref_path);
 
-        bool check_collision(FrenetPath &path,
-                             const FrenetPoint &leader_point,
-                             const bool &car_following);
-    };
+  void obstacle_classification(std::vector<Obstacle> &detected_objects);
 
-} // carla_pnc
+  void cal_collision_box(Obstacle &object);
 
-#endif // COLLISION_DETECTION_H
+  bool check_collision(FrenetPath &path,
+                        const FrenetPoint &leader_point,
+                        const bool &car_following);
+};
+
+}  // namespace carla_pnc
+
+#endif  // PLANNING_INCLUDE_COLLISION_DETECTION_COLLISION_DETECTION_H_
