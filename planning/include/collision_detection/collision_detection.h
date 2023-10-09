@@ -53,8 +53,8 @@ class CollisionDetection {
   void cal_collision_box(Obstacle &object);
 
   bool check_collision(FrenetPath &path,
-                        const FrenetPoint &leader_point,
-                        const bool &car_following);
+                       const FrenetPoint &leader_point,
+                       const bool &car_following);
 };
 
 }  // namespace carla_pnc

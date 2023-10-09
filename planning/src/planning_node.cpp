@@ -279,7 +279,6 @@ namespace carla_pnc {
 
     tcl_plot.PlotRawCurvature(local_path, "k");
     tcl_plot.PlotRefCurvature(ref_path, "b--");
-    std::cout << "s = " << ref_path.back().s_ << std::endl;
   }
 
 
@@ -383,26 +382,16 @@ namespace carla_pnc {
                   int index = cur_pose.v;
                   global_initial_point = pre_final_path.frenet_path[index];
                 }
-
                 // global_initial_point = cur_pose;
             }
 
-              // 将规划起点投影到Frenet坐标系中
-              // 计算匹配点下标
-              // int frenet_match_index = search_match_index(global_initial_point.x, global_initial_point.y, ref_path, 0);
-
-              // 通过匹配点求投影点
-              // path_point projection_point = match_to_projection(global_initial_point, ref_path[frenet_match_index]);
-
-              // 计算Frenet坐标
-              // FrenetPoint frenet_initial_point = Cartesian2Frenet(global_initial_point, projection_point);
-
+            // 将规划起点投影到Frenet坐标系中
             FrenetPoint frenet_initial_point = calc_frenet(global_initial_point, ref_path);
             // ROS_INFO("Get Initial Point Successfully");
 
             /***********************************Step4 Lattice Planner**************************************/
-
-            CollisionDetection collision_detection(detected_objects, collision_distance, ref_path);  // 碰撞检测模块
+            // 碰撞检测模块
+            CollisionDetection collision_detection(detected_objects, collision_distance, ref_path);
 
             if (planning_method == "Lattice") {
               LatticePlanner planner(lattice_params,
@@ -438,44 +427,44 @@ namespace carla_pnc {
                     fabs(ob_fp.l - frenet_initial_point.l) < 2.0 &&
                     fabs(ob_fp.s - frenet_initial_point.s) < 3.0 * cruise_speed &&
                     object.point.v > 0.6 * cruise_speed) {
-                    // ROS_INFO("leader car speed:%.2f , position,x:%.2f,y:%.2f",ob_fp.s_d,ob_fp.s,ob_fp.l);
-                    car_follow = true;
-                    leader_car = ob_fp;
-                    break;
+                  // ROS_INFO("leader car speed:%.2f , position,x:%.2f,y:%.2f",ob_fp.s_d,ob_fp.s,ob_fp.l);
+                  car_follow = true;
+                  leader_car = ob_fp;
+                  break;
                 }
-                }
-                // 所有的采样轨迹，用于可视化
-                sample_paths = planner.get_planning_paths(ref_frenet, frenet_initial_point, leader_car, car_follow);
-
-                // 获取最佳轨迹
-                final_path = planner.planning(ref_frenet, frenet_initial_point, leader_car, car_follow);
-
-                pre_final_path = final_path;  // 用于存储上一个周期的轨迹
-
-                history_paths.push_back(final_path);  // 历史轨迹，用于可视化
-
-                ROS_INFO("Selected best path successfully,the size is%d", final_path.size_);
-                } else if (planning_method == "EM") {
-                  EMPlanner planner(collision_detection,
-                                    dp_path_params,
-                                    qp_path_params);
-                  final_path = planner.planning(ref_frenet, frenet_initial_point);
-                  pre_final_path = final_path;          // 用于存储上一个周期的轨迹
-                  history_paths.push_back(final_path);  // 历史轨迹，用于可视化
-                  ROS_INFO("Selected best path successfully,the size is%d", final_path.size_);
-                }
-                /*******************************visualization******************************************/
-                // 最优规划轨迹Rviz可视化
-                final_path_visualization(final_path);
-
-                // 采样轨迹Rviz可视化
-                sample_paths_visualization(sample_paths);
-
-                // 显示障碍物的速度
-                object_speed_visualization(collision_detection.detected_objects);
               }
+              // 所有的采样轨迹，用于可视化
+              sample_paths = planner.get_planning_paths(ref_frenet, frenet_initial_point, leader_car, car_follow);
+
+              // 获取最佳轨迹
+              final_path = planner.planning(ref_frenet, frenet_initial_point, leader_car, car_follow);
+
+              pre_final_path = final_path;  // 用于存储上一个周期的轨迹
+
+              history_paths.push_back(final_path);  // 历史轨迹，用于可视化
+
+              ROS_INFO("Selected best path successfully,the size is%d", final_path.size_);
+              } else if (planning_method == "EM") {
+                EMPlanner planner(collision_detection,
+                                  dp_path_params,
+                                  qp_path_params);
+                final_path = planner.planning(ref_frenet, frenet_initial_point);
+                pre_final_path = final_path;          // 用于存储上一个周期的轨迹
+                history_paths.push_back(final_path);  // 历史轨迹，用于可视化
+                ROS_INFO("Selected best path successfully,the size is%d", final_path.size_);
+              }
+              /*******************************visualization******************************************/
+              // 最优规划轨迹Rviz可视化
+              final_path_visualization(final_path);
+
+              // 采样轨迹Rviz可视化
+              sample_paths_visualization(sample_paths);
+
+              // 显示障碍物的速度
+              object_speed_visualization(collision_detection.detected_objects);
             }
           }
+        }
         // 参考线可视化
         ref_path_visualization(ref_path);
 
