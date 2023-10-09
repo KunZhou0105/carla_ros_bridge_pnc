@@ -121,26 +121,26 @@ namespace carla_pnc {
 
           // if (dist < 5.0)
           // {
-          //     // 外积判断障碍物左右方向
+              // 外积判断障碍物左右方向
           //     std::pair<double, double> path_or = make_pair(end.s - start.s, end.l - start.l);                             // 路径方向向量
           //     std::pair<double, double> obstacle_or = make_pair(static_ob.point.s - start.s, static_ob.point.s - start.l); // 障碍物方向向量
 
-          //     // ROS_INFO("obstacle,s: %.2f,l:%.2f", static_ob.point.s, static_ob.point.l);
-          //     // ROS_INFO("car,s: %.2f,l:%.2f", start.s, start.l);
-          //     // 在左侧，减小碰撞代价（更倾向于从左侧过）
+          // ROS_INFO("obstacle,s: %.2f,l:%.2f", static_ob.point.s, static_ob.point.l);
+          // ROS_INFO("car,s: %.2f,l:%.2f", start.s, start.l);
+          // 在左侧，减小碰撞代价（更倾向于从左侧过）
           //     if (path_or.first * obstacle_or.second - path_or.second * obstacle_or.first < 0 && cost_collision > 0)
           //     {
-          //         // ROS_INFO("left");
+                  // ROS_INFO("left");
           //         cost_collision -= 1000;
           //     }
           // }
         }
 
-        // // 外积判断障碍物左右方向
+        // 外积判断障碍物左右方向
         // std::pair<double, double> path_or = make_pair(end.s - start.s, end.l - start.l);                       // 路径方向向量
         // std::pair<double, double> obstacle_or = make_pair(min_ob.point.s - start.s, min_ob.point.l - start.l); // 障碍物方向向量
 
-        // // 在左侧，减小碰撞代价（更倾向于从左侧过）
+        // 在左侧，减小碰撞代价（更倾向于从左侧过）
         // if (path_or.first * obstacle_or.second - path_or.second * obstacle_or.first < 0 && cost_collision > 0)
         // {
         //     cost_collision -= 100;
@@ -168,7 +168,7 @@ namespace carla_pnc {
         for (int i = 0; i < rows; ++i) {
           // std::vector<std::future<double>> cost_result(rows);
           dp_sample_path[i][j].dp_cost = DBL_MAX;
-          // // async异步计算cost
+          // async异步计算cost
           // for (int g = 0; g < rows; ++g)
           // {
           //     cost_result[k] = std::async(std::launch::async, &EMPlanner::calc_dppath_cost, this,
@@ -647,9 +647,13 @@ namespace carla_pnc {
         // 生成凸空间
         calc_convex_space(this->dp_final_path);
 
+        // QP path计时
+        ros::Time start_time = ros::Time::now();
         // QP 求解
         calc_qp_path(this->dp_final_path, this->l_min, this->l_max);
-
+        ros::Time end_time = ros::Time::now();
+        ros::Duration solve_duration = end_time - start_time;
+        std::cout << "QP path time is: " << solve_duration << std::endl;
         // 转回全局坐标系
         // final_path.size_ = get_cartesian_paths(dp_final_path, ref_frenet);
 
